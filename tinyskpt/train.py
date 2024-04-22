@@ -27,5 +27,6 @@ def train(config_path: Path | None = None, output_dir: Path | None = None) -> No
 
     config = _load_config(config_path)
     print(f"{config=:}")
+    print(f"{config.arch_config.head_size=:}")
 
     print("TODO: Implement training logic.")

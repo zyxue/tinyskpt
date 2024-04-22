@@ -1,6 +1,7 @@
 # The default configuration is mainly for testing purpose.
 arch_config:
-  vocab_size: -1 # This will be calculated from the text data directly.
+  # vocab_size will be calculated from the text data instead.
+  vocab_size: -1
   batch_size: 3
   embed_size: 64
   num_heads: 2
