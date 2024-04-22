@@ -1,5 +1,5 @@
 # The default configuration is mainly for testing purpose.
-architecture_config:
+arch_config:
   vocab_size: -1 # This will be calculated from the text data directly.
   batch_size: 3
   embed_size: 64
