@@ -58,7 +58,8 @@ class SingleHeadAttention(nn.Module):
         # value can be interpreted as what info the embedding can communicate.
         value = self.value(x)  # (B, C, E) @ (E, H) -> (B, C, H)
 
-        return weight @ value  # (B, C, C) @ (B, C, H) -> (B, C, H)
+        out = weight @ value  # (B, C, C) @ (B, C, H) -> (B, C, H)
+        return out
 
 
 class MultiHeadAttention(nn.Module):
@@ -66,6 +67,7 @@ class MultiHeadAttention(nn.Module):
 
     def __init__(
         self,
+        *,
         embed_size: int,
         context_length: int,
         dropout_rate: float,
@@ -90,10 +92,35 @@ class MultiHeadAttention(nn.Module):
             ]
         )
 
-        self.project = nn.Linear(head_size * num_heads, head_size * num_heads)
+        # The linear layer on top of concatenated heads (described in Figure 2
+        # in the attention paper).
+        self.linear = nn.Linear(head_size * num_heads, head_size * num_heads)
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = torch.cat([h(x) for h in self.heads], dim=-1)
-        out = self.dropout(self.project(out))
+        out = self.dropout(self.linear(out))
+        return out
+
+
+class FeedForward(nn.Module):
+    """Just a simple feed-forward sublayer."""
+
+    def __init__(self, *, input_size: int, dropout_rate: float, scaler: int):
+        """
+        Args:
+            input_size: size of the input vector.
+            dropout_rate: dropout rate.
+            scaler: scalor for calculating the size of the hidden layer: scaler
+                * input_size."""
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_size, scaler * input_size),
+            nn.ReLU(),
+            nn.Linear(scaler * input_size, input_size),
+            nn.Dropout(dropout_rate),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = self.net(x)
         return out

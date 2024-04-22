@@ -60,3 +60,26 @@ class TestMultiHeadAttention:
         )
         actual = module(x)
         assert actual.shape == (batch_size, context_length, (5 // 2) * 2)
+
+
+class TestFeedFoward:
+    def test_forward(self) -> None:
+        batch_size = 1
+        input_size = 2
+        scaler = 3
+        module = attn.FeedForward(
+            input_size=input_size, dropout_rate=0.1, scaler=scaler
+        )
+
+        assert module.net[0].out_features == input_size * scaler
+        x = torch.Tensor(
+            [
+                [
+                    [0.1, 0.2],
+                    [0.3, 0.4],
+                    [0.5, 0.6],
+                ],
+            ]
+        )
+        actual = module(x)
+        assert actual.shape == x.shape
