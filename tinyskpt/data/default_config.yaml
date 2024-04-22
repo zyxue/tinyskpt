@@ -1,0 +1,16 @@
+# The default configuration is mainly for testing purpose.
+architecture_config:
+  vocab_size: -1 # This will be calculated from the text data directly.
+  batch_size: 3
+  embed_size: 64
+  num_heads: 2
+  context_length: 8
+  num_layers: 2
+  dropout_rate: 0.2
+train_config:
+  max_iters: 20
+  learning_rate: 3e-4
+eval_config:
+  eval_interval: 2
+  num_batches_for_eval: 5
+  eval_size: 0.1
