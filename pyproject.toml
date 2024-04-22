@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tinyskpt"
+version = "0.0.1"
+description = "Decoder-only transformer trained on Tiny Shakespeare"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE.txt"}
+keywords = ["transformer", "tiny", "shakespeare"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Build Tools",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+]
+
+# For an analysis of this field vs pip's requirements files see:
+# https://packaging.python.org/discussions/install-requires-vs-requirements/
+dependencies = [
+  "fire",
+  "loguru",
+  "pandas",
+  "pydantic",
+  "pyyaml",
+  "streamlit",
+  "torch",
+]
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage", "pytest"]
+
+[project.urls]
+"Homepage" = "https://github.com/zyxue/tiny-shakespeare-transformer"
+
+[project.scripts]
+tinyskpt = "tinyskpt.main:main"
+
+
+# This is configuration specific to the `setuptools` build backend.
+# If you are using a different build backend, you will need to change this.
+[tool.setuptools]
+# If there are data files included in your packages that need to be
+# installed, specify them here.
+package-data = {"sample" = ["*.dat"]}
