@@ -6,10 +6,11 @@ from torch.nn import functional as F
 
 
 class SingleHeadAttention(nn.Module):
-    """A single head of self-attention"""
+    """A single head of self-attention."""
 
     def __init__(
         self,
+        *,
         embed_size: int,
         head_size: int,
         context_length: int,
@@ -58,3 +59,41 @@ class SingleHeadAttention(nn.Module):
         value = self.value(x)  # (B, C, E) @ (E, H) -> (B, C, H)
 
         return weight @ value  # (B, C, C) @ (B, C, H) -> (B, C, H)
+
+
+class MultiHeadAttention(nn.Module):
+    """Group of multiple sibngle-headed self-attention."""
+
+    def __init__(
+        self,
+        embed_size: int,
+        context_length: int,
+        dropout_rate: float,
+        num_heads: int,
+    ):
+        super().__init__()
+
+        # Note, the head size of single-head attention is derived from
+        # embed_size // num_heads, so using multi-head attention does not
+        # increase parameter numbers.
+        head_size = embed_size // num_heads
+
+        self.heads = nn.ModuleList(
+            [
+                SingleHeadAttention(
+                    embed_size=embed_size,
+                    head_size=head_size,
+                    context_length=context_length,
+                    dropout_rate=dropout_rate,
+                )
+                for _ in range(num_heads)
+            ]
+        )
+
+        self.project = nn.Linear(head_size * num_heads, head_size * num_heads)
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, x):
+        out = torch.cat([h(x) for h in self.heads], dim=-1)
+        out = self.dropout(self.project(out))
+        return out
