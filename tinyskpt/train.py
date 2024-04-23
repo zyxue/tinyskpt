@@ -19,7 +19,7 @@ def train(config_path: Path | None = None, output_dir: Path | None = None) -> No
     """
     output_dir = output_dir or Path.cwd()
     config_path = (
-        config_path or (Path(__file__).parent / "data/default_config.yaml").resolve()
+        config_path or (Path(__file__).parent / "config/default_config.yaml").resolve()
     )
 
     print(f"{output_dir=:}")
