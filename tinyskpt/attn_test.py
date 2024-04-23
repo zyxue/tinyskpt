@@ -136,3 +136,43 @@ class TestAttentionLayer:
             context_length,
             embed_size,
         )
+
+
+class TestDecoderTransformer:
+    def test_forward(self) -> None:
+        vocab_size = 100
+        embed_size = 5
+        head_size = 2
+        context_length = 4
+        dropout_rate = 0.1
+        num_heads = 2
+
+        module = attn.DecoderTransformer(
+            vocab_size=vocab_size,
+            embed_size=embed_size,
+            head_size=head_size,
+            context_length=context_length,
+            dropout_rate=dropout_rate,
+            num_heads=num_heads,
+            ff_hidden_scaler=4,
+            num_layers=2,
+        )
+
+        x = torch.tensor(
+            [
+                [0, 1, 2, 3],
+                [4, 5, 6, 7],
+            ],
+            dtype=torch.long,
+        )
+        actual = module(
+            x,
+            targets=torch.tensor(
+                [
+                    [11, 22, 33, 44],
+                    [55, 66, 77, 88],
+                ],
+                dtype=torch.long,
+            ),
+        )
+        assert len(actual) == 2

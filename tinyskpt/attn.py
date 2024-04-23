@@ -1,4 +1,12 @@
-"""Attention related nn modules."""
+"""Attention related nn modules.
+
+Symbols:
+    B: batch size.
+    C: context length.
+    E: embedding size.
+    H: head size.
+    V: vocabulary size.
+"""
 
 import torch
 import torch.nn as nn
@@ -32,13 +40,7 @@ class SingleHeadAttention(nn.Module):
         self.dropout = nn.Dropout(dropout_rate)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Transforms (B, C, E)-shaped input -> (B, C, H)-shaped output.
-
-        B: batch size
-        C: context length
-        E: embedding size
-        H: head size
-        """
+        """Transforms (B, C, E)-shaped input -> (B, C, H)-shaped output."""
 
         _, _, embed_size = x.shape
 
@@ -178,8 +180,69 @@ class AttentionLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C, E) -> (B, C, E)"""
-        out = self.layer_norm1(x)
-        out = self.multi_head_attention(out)
-        out = self.layer_norm2(out)
-        out = self.feed_forward(out)
+        x = self.layer_norm1(x)
+        x = self.multi_head_attention(x)
+        x = self.layer_norm2(x)
+        out = self.feed_forward(x)
         return out
+
+
+class DecoderTransformer(nn.Module):
+
+    def __init__(
+        self,
+        *,
+        vocab_size: int,
+        embed_size: int,
+        head_size: int,
+        context_length: int,
+        num_heads: int,
+        ff_hidden_scaler: int,
+        dropout_rate: float,
+        num_layers: int,
+    ):
+        super().__init__()
+        # each token directly reads off the logits for the next token from a lookup table
+        self.token_embedding_table = nn.Embedding(vocab_size, embed_size)
+        self.position_embedding_table = nn.Embedding(context_length, embed_size)
+        self.attention_layers = nn.Sequential(
+            *[
+                AttentionLayer(
+                    embed_size=embed_size,
+                    head_size=head_size,
+                    context_length=context_length,
+                    dropout_rate=dropout_rate,
+                    num_heads=num_heads,
+                    ff_hidden_scaler=ff_hidden_scaler,
+                )
+                for _ in range(num_layers)
+            ]
+        )
+        self.layer_norm = nn.LayerNorm(embed_size)
+        self.linear = nn.Linear(embed_size, vocab_size)
+
+    def forward(self, x, targets=None):
+        """Conducts training if targets not specified, otherwise inference.
+        Args:
+            x is batch of arrays of token indexes. (B, C).
+            targets: batch of token indexes. (B).
+        """
+        batch_size, context_length = x.shape
+
+        token_embed = self.token_embedding_table(x)  # (B, C, E)
+        position_embed = self.position_embedding_table(  # (B, C, E)
+            torch.arange(context_length, device=next(self.parameters()).device.type)
+        )
+        x = token_embed + position_embed  # (B, C, E) + (B, C, E) -> (B, C, E)
+        x = self.attention_layers(x)  # (B, C, E) -> (B, C, E)
+        x = self.layer_norm(x)  # (B, C, E) -> (B, C, E)
+        logits = self.linear(x)  # (B, C, V)
+
+        loss = None
+        if targets is not None:
+            batch_size, context_length, vocab_size = logits.shape
+            logits = logits.view(batch_size * context_length, vocab_size)
+            targets = targets.view(batch_size * context_length)
+            loss = F.cross_entropy(logits, targets)
+
+        return logits, loss
