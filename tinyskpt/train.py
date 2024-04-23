@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import os
 from pathlib import Path
@@ -34,6 +35,61 @@ def _init_model(config: config_types.ArchConfig) -> attn.DecoderTransformer:
         dropout_rate=config.dropout_rate,
         num_layers=config.num_layers,
     )
+
+
+@dataclasses.dataclass(frozen=True)
+class EstimatedLoss:
+    train: float
+    eval: float
+
+
+@torch.no_grad()
+def _estimate_loss_for_one_split(
+    *,
+    split: data_utils.Split,
+    model: attn.DecoderTransformer,
+    data_handler: data_utils.DataHandler,
+    arch_config: config_types.ArchConfig,
+    eval_config: config_types.EvalConfig,
+) -> float:
+    losses = []
+    for k in range(eval_config.num_batches_for_eval):
+        inputs, targets = data_handler.get_batch(
+            split,
+            batch_size=arch_config.batch_size,
+            context_length=arch_config.context_length,
+        )
+        _, loss = model(inputs, targets)
+        losses.append(loss.item())
+    return torch.mean(torch.tensor(losses, dtype=torch.float32)).item()
+
+
+@torch.no_grad()
+def estimate_loss(
+    model: attn.DecoderTransformer,
+    data_handler: data_utils.DataHandler,
+    arch_config: config_types.ArchConfig,
+    eval_config: config_types.EvalConfig,
+) -> EstimatedLoss:
+    model.eval()  # Switch to evaluation mode.
+    kwargs = {
+        "model": model,
+        "data_handler": data_handler,
+        "arch_config": arch_config,
+        "eval_config": eval_config,
+    }
+    out = EstimatedLoss(
+        train=_estimate_loss_for_one_split(
+            split=data_handler.Split.TRAIN,
+            **kwargs,
+        ),
+        eval=_estimate_loss_for_one_split(
+            split=data_handler.Split.EVAL,
+            **kwargs,
+        ),
+    )
+    model.train()  # Switch back to training model.
+    return out
 
 
 @fire.decorators.SetParseFns(

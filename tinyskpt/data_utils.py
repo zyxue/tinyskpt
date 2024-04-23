@@ -1,7 +1,6 @@
 """Utilities related to data handling."""
 
 import enum
-from typing import Literal
 
 import torch
 
