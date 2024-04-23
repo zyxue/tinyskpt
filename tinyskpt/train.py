@@ -23,6 +23,19 @@ def _load_data(data_path: Path) -> str:
     return data_path.read_text()
 
 
+def _init_model(config: config_types.ArchConfig) -> attn.DecoderTransformer:
+    return attn.DecoderTransformer(
+        vocab_size=config.vocab_size,
+        embed_size=config.embed_size,
+        head_size=config.head_size,
+        context_length=config.context_length,
+        num_heads=config.num_heads,
+        ff_hidden_scaler=config.ff_hidden_scaler,
+        dropout_rate=config.dropout_rate,
+        num_layers=config.num_layers,
+    )
+
+
 @fire.decorators.SetParseFns(
     data_path=Path,
     config_path=Path,
@@ -59,6 +72,11 @@ def train(
     data_handler = data_utils.DataHandler(
         data=torch.tensor(tokenizer.encode(text), dtype=torch.long),
         eval_size=config.eval_config.eval_size,
+    )
+
+    model = _init_model(config.arch_config).to(_DEVICE)
+    logger.info(
+        f"Number of parameters: {model.num_params:,}",
     )
 
     batch = data_handler.get_batch(

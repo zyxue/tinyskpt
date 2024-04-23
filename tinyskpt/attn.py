@@ -245,3 +245,8 @@ class DecoderTransformer(nn.Module):
             loss = F.cross_entropy(logits, targets)
 
         return logits, loss
+
+    # TODO: consider making num_params a mixin for all nn.Module subclasses.
+    @property
+    def num_params(self) -> int:
+        return sum(p.numel() for p in self.parameters() if p.requires_grad)
