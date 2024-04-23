@@ -58,6 +58,7 @@ def _estimate_loss_for_one_split(
             split,
             batch_size=arch_config.batch_size,
             context_length=arch_config.context_length,
+            device=_DEVICE,
         )
         _, loss = model(inputs, targets)
         losses.append(loss.item())
@@ -80,11 +81,11 @@ def estimate_loss(
     }
     out = EstimatedLoss(
         train=_estimate_loss_for_one_split(
-            split=data_handler.Split.TRAIN,
+            split=data_utils.Split.TRAIN,
             **kwargs,
         ),
         eval=_estimate_loss_for_one_split(
-            split=data_handler.Split.EVAL,
+            split=data_utils.Split.EVAL,
             **kwargs,
         ),
     )
@@ -135,11 +136,42 @@ def train(
         f"Number of parameters: {model.num_params:,}",
     )
 
-    batch = data_handler.get_batch(
-        data_utils.Split.TRAIN,
-        batch_size=2,
-        context_length=5,
-        device=_DEVICE,
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config.train_config.learning_rate,
     )
 
-    logger.info(batch)
+    loss_history = []
+    for index in range(config.train_config.max_iters):
+        # TODO: add a progress interval to the config.
+        logger.info(f"Progress: {index + 1}/{config.train_config.max_iters}")
+
+        if (
+            index % config.eval_config.eval_interval == 0
+            or index == config.train_config.max_iters - 1
+        ):
+            loss = estimate_loss(
+                model, data_handler, config.arch_config, config.eval_config
+            )
+            logger.info(
+                f"step {index}: train loss {loss.train:.4f}, eval loss {loss.eval:.4f}"
+            )
+            loss_history.append(
+                {
+                    "step": index,
+                    "train_loss": loss.train,
+                    "eval_loss": loss.eval,
+                }
+            )
+
+        inputs, targets = data_handler.get_batch(
+            data_utils.Split.TRAIN,
+            batch_size=config.arch_config.batch_size,
+            context_length=config.arch_config.context_length,
+            device=_DEVICE,
+        )
+
+        _, loss = model(inputs, targets)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
