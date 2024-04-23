@@ -24,6 +24,12 @@ class ArchConfig(pydantic.BaseModel):
     # Dropout rate.
     dropout_rate: float
 
+    def model_post_init(self, __context):
+        if not (self.embed_size % self.num_heads == 0):
+            raise ValueError(
+                f"Embed size must be divisible by num_heads: {self.embed_size} % {self.num_heads} != 0"
+            )
+
     @property
     def head_size(self) -> int:
         """Size of the attention head
