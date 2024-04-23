@@ -36,8 +36,8 @@ class TestSingleHeadAttention:
 class TestMultiHeadAttention:
     def test_forward(self) -> None:
         batch_size = 1
-        embed_size = 5
-        head_size = 2
+        embed_size = 6
+        head_size = 3
         context_length = 4
         num_heads = 2
         dropout_rate = 0.1
@@ -53,10 +53,10 @@ class TestMultiHeadAttention:
         x = torch.Tensor(
             [
                 [
-                    [-0.1, -0.2, 0, 0.1, 0.2],
-                    [-0.3, -0.4, 0, 0.3, 0.4],
-                    [-0.5, -0.6, 0, 0.5, 0.6],
-                    [-0.7, -0.8, 0, 0.7, 0.8],
+                    [-0.1, -0.2, 0, 0.1, 0.2, 0.3],
+                    [-0.3, -0.4, 0, 0.3, 0.4, 0.5],
+                    [-0.5, -0.6, 0, 0.5, 0.6, 0.7],
+                    [-0.7, -0.8, 0, 0.7, 0.8, 0.9],
                 ],
             ]
         )
@@ -105,8 +105,8 @@ class TestFeedFoward:
 class TestAttentionLayer:
     def test_forward(self) -> None:
         batch_size = 1
-        embed_size = 5
-        head_size = 2
+        embed_size = 6
+        head_size = 3
         context_length = 4
         dropout_rate = 0.1
         num_heads = 2
@@ -123,10 +123,10 @@ class TestAttentionLayer:
         x = torch.Tensor(
             [
                 [
-                    [-0.1, -0.2, 0, 0.1, 0.2],
-                    [-0.3, -0.4, 0, 0.3, 0.4],
-                    [-0.5, -0.6, 0, 0.5, 0.6],
-                    [-0.7, -0.8, 0, 0.7, 0.8],
+                    [-0.1, -0.2, 0, 0.1, 0.2, 0.3],
+                    [-0.3, -0.4, 0, 0.3, 0.4, 0.5],
+                    [-0.5, -0.6, 0, 0.5, 0.6, 0.7],
+                    [-0.7, -0.8, 0, 0.7, 0.8, 0.9],
                 ],
             ]
         )
@@ -141,8 +141,8 @@ class TestAttentionLayer:
 class TestDecoderTransformer:
     def test_forward(self) -> None:
         vocab_size = 100
-        embed_size = 5
-        head_size = 2
+        embed_size = 6
+        head_size = 3
         context_length = 4
         dropout_rate = 0.1
         num_heads = 2
