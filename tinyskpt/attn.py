@@ -180,11 +180,10 @@ class AttentionLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C, E) -> (B, C, E)"""
-        x = self.layer_norm1(x)
-        x = self.multi_head_attention(x)
-        x = self.layer_norm2(x)
-        out = self.feed_forward(x)
-        return out
+        # Residual connection.
+        x = x + self.multi_head_attention(self.layer_norm1(x))
+        x = x + self.feed_forward(self.layer_norm2(x))
+        return x
 
 
 class DecoderTransformer(nn.Module):
