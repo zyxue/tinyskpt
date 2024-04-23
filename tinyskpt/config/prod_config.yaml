@@ -2,17 +2,17 @@
 arch_config:
   # vocab_size will be calculated from the text data instead.
   vocab_size: -1
-  batch_size: 3
-  embed_size: 64
-  num_heads: 2
-  context_length: 8
+  batch_size: 64
+  embed_size: 384
+  num_heads: 6
+  context_length: 256
   ff_hidden_scaler: 4
-  num_layers: 2
+  num_layers: 6
   dropout_rate: 0.2
 train_config:
-  max_iters: 20
+  max_iters: 4000
   learning_rate: 3e-4
 eval_config:
-  eval_interval: 2
-  num_batches_for_eval: 5
+  eval_interval: 500
+  num_batches_for_eval: 200
   eval_size: 0.1

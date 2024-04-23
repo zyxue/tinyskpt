@@ -16,6 +16,8 @@ class ArchConfig(pydantic.BaseModel):
     num_heads: int
     # Number of tokens in each context.
     context_length: int
+    # The scaler for calculating the hidden layer size in the feedforward sublayer.
+    ff_hidden_scaler: int
     # Number of attention layers. An attention layer has two sublayers: a
     # multi-head attention sublayer & a feedforward layer.
     num_layers: int
