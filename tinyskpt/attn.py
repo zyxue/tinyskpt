@@ -69,16 +69,12 @@ class MultiHeadAttention(nn.Module):
         self,
         *,
         embed_size: int,
+        head_size: int,
         context_length: int,
         dropout_rate: float,
         num_heads: int,
     ):
         super().__init__()
-
-        # Note, the head size of single-head attention is derived from
-        # embed_size // num_heads, so using multi-head attention does not
-        # increase parameter numbers.
-        head_size = embed_size // num_heads
 
         self.heads = nn.ModuleList(
             [
@@ -106,7 +102,14 @@ class MultiHeadAttention(nn.Module):
 class FeedForward(nn.Module):
     """Just a simple feed-forward sublayer."""
 
-    def __init__(self, *, input_size: int, dropout_rate: float, scaler: int):
+    def __init__(
+        self,
+        *,
+        input_size: int,
+        scaler: int,
+        output_size,
+        dropout_rate: float,
+    ):
         """
         Args:
             input_size: size of the input vector.
@@ -114,13 +117,69 @@ class FeedForward(nn.Module):
             scaler: scalor for calculating the size of the hidden layer: scaler
                 * input_size."""
         super().__init__()
+
         self.net = nn.Sequential(
             nn.Linear(input_size, scaler * input_size),
             nn.ReLU(),
-            nn.Linear(scaler * input_size, input_size),
+            nn.Linear(scaler * input_size, output_size),
             nn.Dropout(dropout_rate),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out = self.net(x)
+        return out
+
+
+class AttentionLayer(nn.Module):
+    """Attention layer is composed of a sublayers.
+
+    - Multi-head attention sublayer
+    - Feed-forward sublayer
+    """
+
+    def __init__(
+        self,
+        *,
+        embed_size: int,
+        head_size: int,
+        context_length: int,
+        dropout_rate: float,
+        num_heads: int,
+        ff_hidden_scaler: int,
+    ) -> None:
+        """
+        Args:
+            embed_size: size of the input embedding vector.
+            context_length: length of the context.
+            dropout_rate: dropout rate.
+            num_heads: number of heads in multi-head attention.
+            ff_hidden_scaler: scaler for calculating the the hidden layer size in the
+                feedforward sublayer.
+        """
+        super().__init__()
+        self.multi_head_attention = MultiHeadAttention(
+            embed_size=embed_size,
+            head_size=head_size,
+            context_length=context_length,
+            dropout_rate=dropout_rate,
+            num_heads=num_heads,
+        )
+
+        input_size = head_size * num_heads
+
+        self.feed_forward = FeedForward(
+            input_size=input_size,
+            scaler=ff_hidden_scaler,
+            output_size=embed_size,
+            dropout_rate=dropout_rate,
+        )
+        self.layer_norm1 = nn.LayerNorm(embed_size)
+        self.layer_norm2 = nn.LayerNorm(input_size)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """(B, C, E) -> (B, C, E)"""
+        out = self.layer_norm1(x)
+        out = self.multi_head_attention(out)
+        out = self.layer_norm2(out)
+        out = self.feed_forward(out)
         return out
