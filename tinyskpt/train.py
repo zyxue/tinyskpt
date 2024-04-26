@@ -2,7 +2,7 @@ import dataclasses
 import json
 import os
 from pathlib import Path
-from typing import Callable, Literal
+from typing import TypedDict
 
 import fire
 import torch
@@ -39,8 +39,15 @@ def _init_model(config: config_types.ArchConfig) -> attn.DecoderTransformer:
 
 @dataclasses.dataclass(frozen=True)
 class EstimatedLoss:
-    train: float
-    eval: float
+    train_loss: float
+    eval_loss: float
+
+
+@dataclasses.dataclass(frozen=True)
+class StepLoss(TypedDict):
+    step: int
+    train_loss: float
+    eval_loss: float
 
 
 @torch.no_grad()
@@ -66,7 +73,7 @@ def _estimate_loss_for_one_split(
 
 
 @torch.no_grad()
-def estimate_loss(
+def _estimate_loss(
     model: attn.DecoderTransformer,
     data_handler: data_utils.DataHandler,
     arch_config: config_types.ArchConfig,
@@ -80,17 +87,64 @@ def estimate_loss(
         "eval_config": eval_config,
     }
     out = EstimatedLoss(
-        train=_estimate_loss_for_one_split(
+        train_loss=_estimate_loss_for_one_split(
             split=data_utils.Split.TRAIN,
             **kwargs,
         ),
-        eval=_estimate_loss_for_one_split(
+        eval_loss=_estimate_loss_for_one_split(
             split=data_utils.Split.EVAL,
             **kwargs,
         ),
     )
     model.train()  # Switch back to training model.
     return out
+
+
+def _train_loop(
+    model: attn.DecoderTransformer,
+    optimizer: torch.optim.AdamW,
+    data_handler: data_utils.DataHandler,
+    config: config_types.Config,
+) -> list[StepLoss]:
+    """Runs the training loop and returns loss history."""
+    loss_history = []
+    for index in range(config.train_config.max_iters):
+        # TODO: add a progress interval to the config.
+        logger.info(f"Progress: {index + 1}/{config.train_config.max_iters}")
+
+        if (
+            index % config.eval_config.eval_interval == 0
+            or index == config.train_config.max_iters - 1
+        ):
+            loss = _estimate_loss(
+                model, data_handler, config.arch_config, config.eval_config
+            )
+            logger.info(
+                f"step {index}: "
+                f"train loss {loss.train_loss:.4f}, "
+                f"eval loss {loss.eval_loss:.4f}"
+            )
+            loss_history.append(
+                StepLoss(
+                    step=index,
+                    train_loss=loss.train_loss,
+                    eval_loss=loss.eval_loss,
+                )
+            )
+
+        inputs, targets = data_handler.get_batch(
+            data_utils.Split.TRAIN,
+            batch_size=config.arch_config.batch_size,
+            context_length=config.arch_config.context_length,
+            device=_DEVICE,
+        )
+
+        _, loss = model(inputs, targets)
+        optimizer.zero_grad(set_to_none=True)
+        loss.backward()
+        optimizer.step()
+
+    return loss_history
 
 
 @fire.decorators.SetParseFns(
@@ -141,37 +195,9 @@ def train(
         lr=config.train_config.learning_rate,
     )
 
-    loss_history = []
-    for index in range(config.train_config.max_iters):
-        # TODO: add a progress interval to the config.
-        logger.info(f"Progress: {index + 1}/{config.train_config.max_iters}")
+    loss_history = _train_loop(model, optimizer, data_handler, config)
 
-        if (
-            index % config.eval_config.eval_interval == 0
-            or index == config.train_config.max_iters - 1
-        ):
-            loss = estimate_loss(
-                model, data_handler, config.arch_config, config.eval_config
-            )
-            logger.info(
-                f"step {index}: train loss {loss.train:.4f}, eval loss {loss.eval:.4f}"
-            )
-            loss_history.append(
-                {
-                    "step": index,
-                    "train_loss": loss.train,
-                    "eval_loss": loss.eval,
-                }
-            )
-
-        inputs, targets = data_handler.get_batch(
-            data_utils.Split.TRAIN,
-            batch_size=config.arch_config.batch_size,
-            context_length=config.arch_config.context_length,
-            device=_DEVICE,
-        )
-
-        _, loss = model(inputs, targets)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
+    logger.info("Saving model ...")
+    torch.save(model, output_dir / "model.pt")
+    logger.info("Saving training results...")
+    (output_dir / "loss_history.json").write_text(json.dumps(loss_history))
