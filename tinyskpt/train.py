@@ -1,6 +1,6 @@
 import dataclasses
 import json
-import os
+import pickle
 from pathlib import Path
 from typing import TypedDict
 
@@ -22,6 +22,14 @@ def _load_config(path: Path) -> config_types.Config:
 
 def _load_data(data_path: Path) -> str:
     return data_path.read_text()
+
+
+def _make_tokenizer(text: str) -> token_utils.Tokenizer:
+    chars = sorted(list(set(text)))
+    return token_utils.Tokenizer(
+        char_to_index={ch: i for i, ch in enumerate(chars)},
+        index_to_char={i: ch for i, ch in enumerate(chars)},
+    )
 
 
 def _init_model(config: config_types.ArchConfig) -> attn.DecoderTransformer:
@@ -176,7 +184,7 @@ def train(
     logger.info(f"Length of dataset in characters: {len(text):,}")
     logger.info(f"{config=:}")
 
-    tokenizer = token_utils.Tokenizer(text)
+    tokenizer = _make_tokenizer(text)
 
     config.arch_config.vocab_size = tokenizer.vocab_size
 
@@ -197,6 +205,8 @@ def train(
 
     loss_history = _train_loop(model, optimizer, data_handler, config)
 
+    logger.info("Saving tokenizer ...")
+    tokenizer.save(output_dir / "tokenizer.json")
     logger.info("Saving model ...")
     torch.save(model, output_dir / "model.pt")
     logger.info("Saving training results...")
