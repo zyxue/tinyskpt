@@ -42,7 +42,10 @@ class SingleHeadAttention(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Transforms (B, C, E)-shaped input -> (B, C, H)-shaped output."""
 
-        _, _, embed_size = x.shape
+        # Note, the context_length (C) can be smaller than the one set during
+        # training at the beginning of inference, i.e. when predicting the first
+        # C words.
+        _, context_length, embed_size = x.shape
 
         # key can be interpreted as what info the embedding is looking for.
         key = self.key(x)  # (B, C, E) @ (E, H) -> (B, C, H)
@@ -53,7 +56,9 @@ class SingleHeadAttention(nn.Module):
         key_transpose = key.transpose(dim0=1, dim1=2)  # (B, C, H) -> (B, H, C)
         weight = query @ key_transpose  # (B, C, H) @ (B, H, C) -> (B, C, C)
         weight /= embed_size**0.5
-        weight = weight.masked_fill(self.tril == 0, float("-inf"))
+        weight = weight.masked_fill(
+            self.tril[:context_length, :context_length] == 0, float("-inf")
+        )
         weight = F.softmax(weight, dim=-1)
         weight = self.dropout(weight)
 
@@ -219,6 +224,9 @@ class DecoderTransformer(nn.Module):
         )
         self.layer_norm = nn.LayerNorm(embed_size)
         self.linear = nn.Linear(embed_size, vocab_size)
+
+        # context_length is needed during inference.
+        self.register_buffer("context_length", torch.tensor(context_length))
 
     def forward(self, x, targets=None):
         """Conducts training if targets not specified, otherwise inference.
