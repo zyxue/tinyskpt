@@ -33,7 +33,7 @@ class Tokenizer:
             )
 
     @staticmethod
-    def load(path: Path | str) -> None:
+    def load(path: Path | str) -> "Tokenizer":
         """Loads the tokenizer from a file."""
         with open(path, "rt") as f:
             data = json.load(f)
