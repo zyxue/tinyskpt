@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from tinyskpt import attn, token_utils
 
 
+@torch.no_grad()
 def make_inference(
     model: attn.DecoderTransformer, context: torch.Tensor, max_new_tokens: int
 ) -> torch.Tensor:
