@@ -34,7 +34,7 @@ model_output = model_output_config.AVAILABLE_MODEL_OUTPUTS[model_output_key]
 tokenizer = token_utils.Tokenizer.load(model_output.tokenizer_path)
 model = model_output_config.load_model(model_output.model_path)
 
-raw_input = st.text_input(label="Enter a value")
+raw_input = st.text_input(label="Enter a prompt")
 if not raw_input:
     st.stop()
 
@@ -77,19 +77,19 @@ probs = F.softmax(logits_slice, dim=-1)  # (B, V) => (V)
 df_probs = pd.DataFrame(
     {
         "index": list(range(tokenizer.vocab_size)),
-        "token": list(tokenizer.decode(list(range(tokenizer.vocab_size)))),
+        "next_token": list(tokenizer.decode(list(range(tokenizer.vocab_size)))),
         "prob": probs.to("cpu").detach().numpy(),
     }
 )
 
-col0, col1 = st.columns(spec=[0.2, 0.8])
+col0, col1 = st.columns(spec=[0.3, 0.7])
 
 with col0:
     st.altair_chart(
         alt.Chart(df_probs.sort_values("prob", ascending=False).head(10))
         .mark_bar()
         .encode(
-            x=alt.X("token", sort=None),
+            x=alt.X("next_token", sort=None),
             y=alt.Y("prob", scale=alt.Scale(domain=[0, 1])),
         )
     )
@@ -137,7 +137,7 @@ with col1:
     subcol0, subcol1 = st.columns(2)
     with subcol0:
         for idx, dfs in enumerate(dfs_list[: len(dfs_list) // 2]):
-            st.write(f"Attention head {idx}")
+            st.write(f"Attention layer {idx}")
             df_plot = (
                 pd.concat(dfs)
                 .rename(columns={"layer_idx": "Layer", "head_idx": "Head"})
@@ -152,7 +152,7 @@ with col1:
     with subcol1:
         # TODO: dedup code with above.
         for idx, dfs in enumerate(dfs_list[len(dfs_list) // 2 :]):
-            st.write(f"Attention head {idx}")
+            st.write(f"Attention layer {idx}")
             df_plot = (
                 pd.concat(dfs)
                 .rename(columns={"layer_idx": "Layer", "head_idx": "Head"})
