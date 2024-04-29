@@ -1,4 +1,6 @@
+import dataclasses
 import itertools
+from pathlib import Path
 from typing import Callable
 
 import altair as alt
@@ -11,10 +13,40 @@ from tinyskpt import token_utils
 
 st.set_page_config(layout="wide")
 
-st.header("Tiny Shakespeare GPT playground")
+st.header("Tiny GPT playground")
 
 
 _DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+@dataclasses.dataclass(frozen=True)
+class ModelOutput:
+    key: str  # An identifier for the model output.
+    output_dir: Path
+
+    @property
+    def tokenizer_path(self) -> Path:
+        return self.output_dir / "tokenizer.json"
+
+    @property
+    def model_path(self) -> Path:
+        return self.output_dir / "model.pt"
+
+    @property
+    def loss_history_path(self) -> Path:
+        return self.output_dir / "loss_history.json"
+
+
+AVAILABLE_MODEL_OUTPUTS = {
+    "tiny_shakespeare": ModelOutput(
+        key="tiny_shakespeare",
+        output_dir=Path(__file__).parent / "model_outputs/tinyshakespeare_output",
+    ),
+    "hongloumeng": ModelOutput(
+        key="hongloumeng",
+        output_dir=Path(__file__).parent / "model_outputs/hongloumeng_output",
+    ),
+}
 
 
 @st.cache_resource
@@ -22,16 +54,20 @@ def load_model(path: str):
     return torch.load(path).to(_DEVICE)
 
 
-tokenizer = token_utils.Tokenizer.load(
-    "/home/dev/disk/projects/learn/tinyshakespeare-transformer/eda/hongloumeng_output/tokenizer.json"
-)
-model = load_model(
-    "/home/dev/disk/projects/learn/tinyshakespeare-transformer/eda/hongloumeng_output/model.pt"
+model_output_key = st.selectbox(
+    label="Select a model output",
+    options=list(AVAILABLE_MODEL_OUTPUTS.keys()),
+    index=None,
 )
 
-df_perf = pd.read_json(
-    "/home/dev/disk/projects/learn/tinyshakespeare-transformer/eda/hongloumeng_output/loss_history.json"
-)
+if not model_output_key:
+    st.stop()
+
+
+model_output = AVAILABLE_MODEL_OUTPUTS[model_output_key]
+tokenizer = token_utils.Tokenizer.load(model_output.tokenizer_path)
+model = load_model(model_output.model_path)
+df_perf = pd.read_json(model_output.loss_history_path)
 
 raw_input = st.text_input(label="Enter a value")
 if not raw_input:
