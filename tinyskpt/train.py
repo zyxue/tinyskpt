@@ -1,6 +1,5 @@
 import dataclasses
 import json
-import pickle
 from pathlib import Path
 from typing import TypedDict
 
