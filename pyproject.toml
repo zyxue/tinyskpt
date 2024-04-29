@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tinyskpt"
 version = "0.0.1"
-description = "Decoder-only transformer trained on Tiny Shakespeare"
+description = "tiny GPT trained on character-level tokens"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE.txt"}
