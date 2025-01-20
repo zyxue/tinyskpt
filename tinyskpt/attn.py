@@ -47,10 +47,10 @@ class SingleHeadAttention(nn.Module):
         # C words.
         _, context_length, embed_size = x.shape
 
-        # key can be interpreted as what info the embedding is looking for.
+        # Key can be interpreted as what info a token contains.
         key = self.key(x)  # (B, C, E) @ (E, H) -> (B, C, H)
 
-        # query can be interpreted as what infor the embedding contains.
+        # Query can be interpreted as what info a token is looking for.
         query = self.query(x)  # (B, C, E) @ (E, H) -> (B, C, H)
 
         key_transpose = key.transpose(dim0=1, dim1=2)  # (B, C, H) -> (B, H, C)
@@ -62,7 +62,7 @@ class SingleHeadAttention(nn.Module):
         weight = F.softmax(weight, dim=-1)
         weight = self.dropout(weight)
 
-        # value can be interpreted as what info the embedding can communicate.
+        # Value can be interpreted as what info a token can communicate.
         value = self.value(x)  # (B, C, E) @ (E, H) -> (B, C, H)
 
         out = weight @ value  # (B, C, C) @ (B, C, H) -> (B, C, H)
