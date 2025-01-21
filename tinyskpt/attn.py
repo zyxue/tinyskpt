@@ -191,7 +191,9 @@ class AttentionLayer(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C, E) -> (B, C, E)"""
-        # Residual connection.
+        # "x +" implements the residual connection.
+        # Note, layer norm is applied before attention or feed_forward 
+        # instead of after as done in the original attn paper.
         x = x + self.multi_head_attention(self.layer_norm1(x))
         x = x + self.feed_forward(self.layer_norm2(x))
         return x
