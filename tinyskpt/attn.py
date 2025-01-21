@@ -55,7 +55,12 @@ class SingleHeadAttention(nn.Module):
 
         key_transpose = key.transpose(dim0=1, dim1=2)  # (B, C, H) -> (B, H, C)
         weight = query @ key_transpose  # (B, C, H) @ (B, H, C) -> (B, C, C)
-        weight /= head_size**0.5   # Scale by sqrt root of head size according to the attn paper.
+        
+        # Scale by sqrt root of head size according to the attn paper. Otherwise, 
+        # the magnitude of weight depends on head size, which would make output of
+        # softmax close to one-hot encoded vector when head size is large.
+        weight /= head_size**0.5   
+        
         weight = weight.masked_fill(
             self.tril[:context_length, :context_length] == 0, float("-inf")
         )
