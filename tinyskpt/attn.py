@@ -33,6 +33,7 @@ class SingleHeadAttention(nn.Module):
         self.key = nn.Linear(embed_size, head_size, bias=False)
         self.query = nn.Linear(embed_size, head_size, bias=False)
         self.value = nn.Linear(embed_size, head_size, bias=False)
+        # tril is needed but not a parameter, aka. buffer
         self.register_buffer(
             "tril", torch.tril(torch.ones(context_length, context_length))
         )
