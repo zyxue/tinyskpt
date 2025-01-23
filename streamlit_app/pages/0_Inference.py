@@ -25,6 +25,8 @@ def make_inference(
         # Gets at max the last `context_length` tokens
         out = out[:, -model.context_length :]
         logits, _ = model(out)
+        # Get -1 slice along the context_length dimension because we only care of 
+        # the prediction based on the full context at inference time.
         logits = logits[:, -1, :]  # (B, C, V) => (B, V)
         probs = F.softmax(logits, dim=-1)  # (B, V) => (B, V)
         new_token_idx = torch.multinomial(probs, num_samples=1)  # (B, 1)
