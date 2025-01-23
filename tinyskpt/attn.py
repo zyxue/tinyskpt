@@ -239,8 +239,9 @@ class DecoderTransformer(nn.Module):
     def forward(self, x, targets=None):
         """Conducts training if targets not specified, otherwise inference.
         Args:
-            x is batch of arrays of token indexes. (B, C).
-            targets: batch of token indexes. (B).
+            x: is batch of arrays of token indexes of shape (B, s), where s <= C.
+                s may be smaller than C during inference time.
+            targets: batch of token indexes of shape (B,).
         """
         batch_size, context_length = x.shape
 
