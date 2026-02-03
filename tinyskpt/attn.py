@@ -237,7 +237,7 @@ class DecoderTransformer(nn.Module):
         self.register_buffer("context_length", torch.tensor(context_length))
 
     def forward(self, x, targets=None):
-        """Conducts training if targets not specified, otherwise inference.
+        """Conducts training if targets specified, otherwise inference.
         Args:
             x: is batch of arrays of token indexes of shape (B, s), where s <= C.
                 s may be smaller than C during inference time.
