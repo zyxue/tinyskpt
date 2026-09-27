@@ -102,7 +102,9 @@ class MultiHeadAttention(nn.Module):
         )
 
         # The linear layer on top of concatenated heads (described in Figure 2
-        # in the attention paper).
+        # in the attention paper). This linear matrix and 
+        # the concatenated-heads matrix are effectively the low-rank factor matrices
+        # of a full E x E value matrix as explained in https://www.youtube.com/watch?v=eMlx5fFNoYc.
         self.linear = nn.Linear(head_size * num_heads, head_size * num_heads)
         self.dropout = nn.Dropout(dropout_rate)
 
