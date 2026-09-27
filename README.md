@@ -75,3 +75,9 @@ Visualization:
 <img src="https://github.com/zyxue/tiny-shakespeare-transformer/blob/main/img/hongloumeng_attn_viz.png?raw=true" alt width="100%">
 
 As seen, the model has a high tendency to complete `林黛` with `玉`, as `林黛玉` is one of the main characters in the novel.
+
+### Architecture of AttentionLayer
+
+https://excalidraw.com/#json=gCDDUE9s_9EN4lK5zgtEi,AICil9SPJxsgVJdLMQ--dQ
+
+
