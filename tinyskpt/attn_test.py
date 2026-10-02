@@ -102,7 +102,7 @@ class TestFeedFoward:
         assert actual.shape == (batch_size, context_length, output_size)
 
 
-class TestAttentionLayer:
+class TestTransformerBlock:
     def test_forward(self) -> None:
         batch_size = 1
         embed_size = 6
@@ -111,7 +111,7 @@ class TestAttentionLayer:
         dropout_rate = 0.1
         num_heads = 2
 
-        module = attn.AttentionLayer(
+        module = attn.TransformerBlock(
             embed_size=embed_size,
             head_size=head_size,
             context_length=context_length,

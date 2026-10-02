@@ -56,12 +56,12 @@ class SingleHeadAttention(nn.Module):
 
         key_transpose = key.transpose(dim0=1, dim1=2)  # (B, C, H) -> (B, H, C)
         weight = query @ key_transpose  # (B, C, H) @ (B, H, C) -> (B, C, C)
-        
-        # Scale by sqrt root of head size according to the attn paper. Otherwise, 
+
+        # Scale by sqrt root of head size according to the attn paper. Otherwise,
         # the magnitude of weight depends on head size, which would make output of
         # softmax close to one-hot encoded vector when head size is large.
-        weight /= head_size**0.5   
-        
+        weight /= head_size**0.5
+
         weight = weight.masked_fill(
             self.tril[:context_length, :context_length] == 0, float("-inf")
         )
@@ -103,7 +103,7 @@ class MultiHeadAttention(nn.Module):
 
         # The linear layer on top of concatenated heads (described in Figure 2
         # in the attention paper). This linear matrix, which can also be considered
-        # a concatenation of `num_heads` matrices, and 
+        # a concatenation of `num_heads` matrices, and
         # the concatenated-heads matrix are effectively the low-rank factor matrices
         # of a full E x E value matrix as explained in https://www.youtube.com/watch?v=eMlx5fFNoYc.
         self.linear = nn.Linear(head_size * num_heads, head_size * num_heads)
@@ -146,11 +146,13 @@ class FeedForward(nn.Module):
         return out
 
 
-class AttentionLayer(nn.Module):
-    """Attention layer is composed of a sublayers.
+class TransformerBlock(nn.Module):
+    """A transformer block consistents of multiple attention heads.
 
-    - Multi-head attention sublayer
-    - Feed-forward sublayer
+    - Multi-head attention
+    - Feed-forward
+    - LayerNorm
+    - Residual connection
     """
 
     def __init__(
@@ -195,7 +197,7 @@ class AttentionLayer(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """(B, C, E) -> (B, C, E)"""
         # "x +" implements the residual connection.
-        # Note, layer norm is applied before attention or feed_forward 
+        # Note, layer norm is applied before attention or feed_forward
         # instead of after as done in the original attn paper.
         x = x + self.multi_head_attention(self.layer_norm1(x)) # Communicate phase
         x = x + self.feed_forward(self.layer_norm2(x)) # Compute phase
@@ -222,7 +224,7 @@ class DecoderTransformer(nn.Module):
         self.position_embedding_table = nn.Embedding(context_length, embed_size)
         self.attention_layers = nn.Sequential(
             *[
-                AttentionLayer(
+                TransformerBlock(
                     embed_size=embed_size,
                     head_size=head_size,
                     context_length=context_length,
