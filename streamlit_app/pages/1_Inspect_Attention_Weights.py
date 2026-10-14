@@ -52,7 +52,7 @@ def getActivation(name: str) -> Callable:
 
 
 key_hooks_list, query_hooks_list = [], []
-for layer_index, layer in enumerate(model.attention_layers):
+for layer_index, layer in enumerate(model.tranformer_blocks):
     key_hooks, query_hooks = [], []
     for head_index, head in enumerate(layer.multi_head_attention.heads):
         key_hooks.append(

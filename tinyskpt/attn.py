@@ -199,8 +199,8 @@ class TransformerBlock(nn.Module):
         # "x +" implements the residual connection.
         # Note, layer norm is applied before attention or feed_forward
         # instead of after as done in the original attn paper.
-        x = x + self.multi_head_attention(self.layer_norm1(x)) # Communicate phase
-        x = x + self.feed_forward(self.layer_norm2(x)) # Compute phase
+        x = x + self.multi_head_attention(self.layer_norm1(x))  # Communicate phase
+        x = x + self.feed_forward(self.layer_norm2(x))  # Compute phase
         return x
 
 
@@ -222,7 +222,7 @@ class DecoderTransformer(nn.Module):
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, embed_size)
         self.position_embedding_table = nn.Embedding(context_length, embed_size)
-        self.attention_layers = nn.Sequential(
+        self.transformer_blocks = nn.Sequential(
             *[
                 TransformerBlock(
                     embed_size=embed_size,
@@ -255,7 +255,7 @@ class DecoderTransformer(nn.Module):
             torch.arange(context_length, device=next(self.parameters()).device.type)
         )
         x = token_embed + position_embed  # (B, C, E) + (B, C, E) -> (B, C, E)
-        x = self.attention_layers(x)  # (B, C, E) -> (B, C, E)
+        x = self.transformer_blocks(x)  # (B, C, E) -> (B, C, E)
         x = self.layer_norm(x)  # (B, C, E) -> (B, C, E)
         logits = self.linear(x)  # (B, C, V)
 
